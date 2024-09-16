@@ -14,7 +14,8 @@ import (
 const (
 	ivfFileHeaderSignature = "DKIF"
 	ivfFileHeaderSize      = 32
-	ivfFrameHeaderSize     = 12
+	// ivfFrameHeaderSize     = 12
+	ivfFrameHeaderSize = 20
 )
 
 var (
@@ -46,6 +47,7 @@ type IVFFileHeader struct {
 type IVFFrameHeader struct {
 	FrameSize uint32 // 0-3
 	Timestamp uint64 // 4-11
+	Offset    uint64 // 12-29
 }
 
 // IVFReader is used to read IVF files and return frame payloads
@@ -98,6 +100,7 @@ func (i *IVFReader) ParseNextFrame() ([]byte, *IVFFrameHeader, error) {
 	header = &IVFFrameHeader{
 		FrameSize: binary.LittleEndian.Uint32(buffer[:4]),
 		Timestamp: binary.LittleEndian.Uint64(buffer[4:12]),
+		Offset:    binary.LittleEndian.Uint64(buffer[12:20]),
 	}
 
 	payload := make([]byte, header.FrameSize)

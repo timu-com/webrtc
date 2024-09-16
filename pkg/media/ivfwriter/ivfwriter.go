@@ -9,7 +9,9 @@ import (
 	"errors"
 	"io"
 	"os"
+	"time"
 
+	"github.com/pion/logging"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
 	"github.com/pion/rtp/codecs/av1/frame"
@@ -41,7 +43,9 @@ type IVFWriter struct {
 	currentFrame []byte
 
 	// AV1
-	av1Frame frame.AV1
+	av1Frame      frame.AV1
+	log           logging.LeveledLogger
+	lastFrameTime int64
 }
 
 // New builds a new IVF writer
@@ -54,6 +58,7 @@ func New(fileName string, opts ...Option) (*IVFWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+	writer.log = logging.NewDefaultLoggerFactory().NewLogger("IVFWriterLogger")
 	writer.ioWriter = f
 	return writer, nil
 }
@@ -110,10 +115,20 @@ func (i *IVFWriter) writeHeader() error {
 }
 
 func (i *IVFWriter) writeFrame(frame []byte) error {
-	frameHeader := make([]byte, 12)
-	binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame))) // Frame length
-	binary.LittleEndian.PutUint64(frameHeader[4:], i.count)            // PTS
+	if i.count == 0 {
+		i.lastFrameTime = time.Now().UnixMilli()
+	}
+	// frameHeader := make([]byte, 12)
+	// binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame))) // Frame length
+	// binary.LittleEndian.PutUint64(frameHeader[4:], i.count)            // PTS
+	frameHeader := make([]byte, 20)
+	currTime := time.Now().UnixMilli()
+	binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame)))                // Frame length
+	binary.LittleEndian.PutUint64(frameHeader[4:], i.count)                           // PTS
+	binary.LittleEndian.PutUint64(frameHeader[12:], uint64(currTime-i.lastFrameTime)) // Millisecond
 	i.count++
+	i.lastFrameTime = currTime
+	// i.log.Errorf("writeFrame Len: %#v, count: %#v offset: %#v", len(frame), int64(i.count), currTime-i.lastFrameTime)
 
 	if _, err := i.ioWriter.Write(frameHeader); err != nil {
 		return err

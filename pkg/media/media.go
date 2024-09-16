@@ -18,6 +18,7 @@ type Sample struct {
 	PacketTimestamp    uint32
 	PrevDroppedPackets uint16
 	Metadata           interface{}
+	Offset             int64
 
 	// RTP headers of RTP packets forming this Sample. (Optional)
 	// Useful for accessing RTP extensions associated to the Sample.
