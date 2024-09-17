@@ -129,6 +129,7 @@ func (i *IVFWriter) writeFrame(frame []byte) error {
 		i.lastFrameTime = time.Now().UnixMilli()
 		i.bytesAccumulatedCounter = 0
 		i.timeElapsedMilliCounter = 0
+		i.timeOffsetMap = map[string]int64{}
 		i.timeOffsetMap[strconv.Itoa(int(i.timeElapsedMilliCounter))] = i.bytesAccumulatedCounter
 	}
 
