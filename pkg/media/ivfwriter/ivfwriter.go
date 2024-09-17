@@ -6,9 +6,12 @@ package ivfwriter
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pion/logging"
@@ -46,6 +49,12 @@ type IVFWriter struct {
 	av1Frame      frame.AV1
 	log           logging.LeveledLogger
 	lastFrameTime int64
+
+	offsetsfileName string
+	// used for seek indexing
+	timeOffsetMap           map[string]int64
+	timeElapsedMilliCounter int64
+	bytesAccumulatedCounter int64
 }
 
 // New builds a new IVF writer
@@ -58,6 +67,7 @@ func New(fileName string, opts ...Option) (*IVFWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+	writer.offsetsfileName = strings.Split(fileName, ".")[0] + "-offsets.json"
 	writer.log = logging.NewDefaultLoggerFactory().NewLogger("IVFWriterLogger")
 	writer.ioWriter = f
 	return writer, nil
@@ -117,17 +127,30 @@ func (i *IVFWriter) writeHeader() error {
 func (i *IVFWriter) writeFrame(frame []byte) error {
 	if i.count == 0 {
 		i.lastFrameTime = time.Now().UnixMilli()
+		i.bytesAccumulatedCounter = 0
+		i.timeElapsedMilliCounter = 0
+		i.timeOffsetMap[strconv.Itoa(int(i.timeElapsedMilliCounter))] = i.bytesAccumulatedCounter
 	}
+
+	currTime := time.Now().UnixMilli()
+	durationSinceLastFrame := uint64(currTime - i.lastFrameTime)
+
+	headerBytes := 20
+	frameHeader := make([]byte, headerBytes)
+	binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame)))      // Frame length
+	binary.LittleEndian.PutUint64(frameHeader[4:], i.count)                 // PTS
+	binary.LittleEndian.PutUint64(frameHeader[12:], durationSinceLastFrame) // Millisecond
 	// frameHeader := make([]byte, 12)
 	// binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame))) // Frame length
 	// binary.LittleEndian.PutUint64(frameHeader[4:], i.count)            // PTS
-	frameHeader := make([]byte, 20)
-	currTime := time.Now().UnixMilli()
-	binary.LittleEndian.PutUint32(frameHeader[0:], uint32(len(frame)))                // Frame length
-	binary.LittleEndian.PutUint64(frameHeader[4:], i.count)                           // PTS
-	binary.LittleEndian.PutUint64(frameHeader[12:], uint64(currTime-i.lastFrameTime)) // Millisecond
+
 	i.count++
 	i.lastFrameTime = currTime
+
+	// time to offset map
+	i.bytesAccumulatedCounter = i.bytesAccumulatedCounter + int64(headerBytes) + int64(len(frame))
+	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastFrame)
+	i.timeOffsetMap[strconv.Itoa(int(i.timeElapsedMilliCounter))] = i.bytesAccumulatedCounter
 	// i.log.Errorf("writeFrame Len: %#v, count: %#v offset: %#v", len(frame), int64(i.count), currTime-i.lastFrameTime)
 
 	if _, err := i.ioWriter.Write(frameHeader); err != nil {
@@ -204,6 +227,20 @@ func (i *IVFWriter) Close() error {
 	defer func() {
 		i.ioWriter = nil
 	}()
+
+	jsonString, err := json.Marshal(i.timeOffsetMap)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(i.offsetsfileName) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(jsonString)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	if ws, ok := i.ioWriter.(io.WriteSeeker); ok {
 		// Update the framecount
