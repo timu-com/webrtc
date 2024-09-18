@@ -10,7 +10,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -52,7 +51,8 @@ type IVFWriter struct {
 
 	offsetsfileName string
 	// used for seek indexing
-	timeOffsetMap           map[string]int64
+	timeOffsetMap           map[int64]int64
+	highestTimeOffset       int64
 	timeElapsedMilliCounter int64
 	bytesAccumulatedCounter int64
 }
@@ -129,8 +129,8 @@ func (i *IVFWriter) writeFrame(frame []byte) error {
 		i.lastFrameTime = time.Now().UnixMilli()
 		i.bytesAccumulatedCounter = 0
 		i.timeElapsedMilliCounter = 0
-		i.timeOffsetMap = map[string]int64{}
-		i.timeOffsetMap[strconv.Itoa(int(i.timeElapsedMilliCounter))] = i.bytesAccumulatedCounter
+		i.timeOffsetMap = map[int64]int64{}
+		i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
 	}
 
 	currTime := time.Now().UnixMilli()
@@ -151,7 +151,10 @@ func (i *IVFWriter) writeFrame(frame []byte) error {
 	// time to offset map
 	i.bytesAccumulatedCounter = i.bytesAccumulatedCounter + int64(headerBytes) + int64(len(frame))
 	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastFrame)
-	i.timeOffsetMap[strconv.Itoa(int(i.timeElapsedMilliCounter))] = i.bytesAccumulatedCounter
+	i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
+	if i.timeElapsedMilliCounter > i.highestTimeOffset {
+		i.highestTimeOffset = i.timeElapsedMilliCounter
+	}
 	// i.log.Errorf("writeFrame Len: %#v, count: %#v offset: %#v", len(frame), int64(i.count), currTime-i.lastFrameTime)
 
 	if _, err := i.ioWriter.Write(frameHeader); err != nil {
@@ -217,6 +220,11 @@ func (i *IVFWriter) WriteRTP(packet *rtp.Packet) error {
 	return nil
 }
 
+type PlayOffset struct {
+	TimeOffset  int64 `json:"time"`
+	BytesOffset int64 `json:"bytes"`
+}
+
 // Close stops the recording
 func (i *IVFWriter) Close() error {
 	if i.ioWriter == nil {
@@ -229,7 +237,19 @@ func (i *IVFWriter) Close() error {
 		i.ioWriter = nil
 	}()
 
-	jsonString, err := json.Marshal(i.timeOffsetMap)
+	secondsInRecording := i.highestTimeOffset / 1000
+	wholeSecondOffsetIndex := make([]*PlayOffset, secondsInRecording)
+	for time, offset := range i.timeOffsetMap {
+		secIdx := time / 1000
+		if secIdx < secondsInRecording {
+			if wholeSecondOffsetIndex[secIdx] != nil && wholeSecondOffsetIndex[secIdx].TimeOffset > time {
+				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
+			} else {
+				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
+			}
+		}
+	}
+	jsonString, err := json.Marshal(wholeSecondOffsetIndex)
 	if err != nil {
 		return err
 	}
