@@ -170,6 +170,7 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 		p.Header.SSRC = uint32(b.ssrc)
 		p.Header.PayloadType = uint8(b.payloadType)
 		if _, err := b.writeStream.WriteRTP(&p.Header, p.Payload); err != nil {
+			logger.Infow("write packet to bindings track", "id", b.id, "ssrc", b.ssrc, "codec", s.codec.MimeType, "streamID", s.streamID)
 			writeErrs = append(writeErrs, err)
 		}
 	}
