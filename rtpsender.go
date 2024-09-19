@@ -256,6 +256,8 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 		return nil
 	}
 
+	fmt.Printf("replacing track %s", track.ID())
+
 	// If we reach this point in the routine, there is only 1 track encoding
 	codec, err := track.Bind(&baseTrackLocalContext{
 		id:              context.ID(),
