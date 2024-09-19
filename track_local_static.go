@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/livekit/protocol/logger"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4/internal/util"
 	"github.com/pion/webrtc/v4/pkg/media"
@@ -162,6 +163,9 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 
 	writeErrs := []error{}
 
+	if len(s.bindings) == 0 {
+		logger.Infow("missing bindings for track, nothing will be written", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+	}
 	for _, b := range s.bindings {
 		p.Header.SSRC = uint32(b.ssrc)
 		p.Header.PayloadType = uint8(b.payloadType)
