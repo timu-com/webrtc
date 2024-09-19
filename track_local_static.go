@@ -147,11 +147,15 @@ func getPacketAllocationFromPool() *rtp.Packet {
 // all PeerConnections. The error message will contain the ID of the failed
 // PeerConnections so you can remove them
 func (s *TrackLocalStaticRTP) WriteRTP(p *rtp.Packet) error {
+	logger.Infow("getting packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+
 	packet := getPacketAllocationFromPool()
 
 	defer resetPacketPoolAllocation(packet)
 
 	*packet = *p
+
+	logger.Infow("writing RTP packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 
 	return s.writeRTP(packet)
 }
