@@ -140,6 +140,7 @@ func (i *IVFReader) parseFileHeader() (*IVFFileHeader, error) {
 		unused:              binary.LittleEndian.Uint32(buffer[28:32]),
 	}
 
+	// ignoring the ivf header for now
 	if header.signature != ivfFileHeaderSignature {
 		return nil, errSignatureMismatch
 	} else if header.version != uint16(0) {
