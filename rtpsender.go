@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/livekit/protocol/logger"
 	"github.com/pion/interceptor"
 	"github.com/pion/randutil"
 	"github.com/pion/rtcp"
@@ -256,7 +257,7 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 		return nil
 	}
 
-	fmt.Printf("replacing track %s", track.ID())
+	logger.Infow("binding track", "id", track.ID(), "ssrc", context.SSRC())
 
 	// If we reach this point in the routine, there is only 1 track encoding
 	codec, err := track.Bind(&baseTrackLocalContext{
