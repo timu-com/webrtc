@@ -8,11 +8,11 @@ package webrtc
 
 import (
 	"io"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/livekit/protocol/logger"
 	"github.com/pion/rtp"
 	"github.com/pion/srtp/v3"
 )
@@ -119,11 +119,12 @@ func (s *srtpWriterFuture) SetReadDeadline(t time.Time) error {
 
 func (s *srtpWriterFuture) WriteRTP(header *rtp.Header, payload []byte) (int, error) {
 	if value, ok := s.rtpWriteStream.Load().(*srtp.WriteStreamSRTP); ok {
+		log.Println("rtp write", "ssrc", s.ssrc)
 		return value.WriteRTP(header, payload)
 	}
 
 	if err := s.init(true); err != nil || s.rtpWriteStream.Load() == nil {
-		logger.Infow("skipping write", "ssrc", s.ssrc, "err", err != nil)
+		log.Println("skipping rtp write", "ssrc", s.ssrc, "err", err != nil)
 		return 0, err
 	}
 
