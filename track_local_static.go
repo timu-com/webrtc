@@ -163,6 +163,7 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 
 	writeErrs := []error{}
 
+	logger.Infow("writing to bindings", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 	if len(s.bindings) == 0 {
 		logger.Infow("missing bindings for track, nothing will be written", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 	}
