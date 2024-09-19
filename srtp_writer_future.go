@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/livekit/protocol/logger"
 	"github.com/pion/rtp"
 	"github.com/pion/srtp/v3"
 )
@@ -122,6 +123,7 @@ func (s *srtpWriterFuture) WriteRTP(header *rtp.Header, payload []byte) (int, er
 	}
 
 	if err := s.init(true); err != nil || s.rtpWriteStream.Load() == nil {
+		logger.Infow("skipping write", "ssrc", s.ssrc, "err", err != nil)
 		return 0, err
 	}
 
