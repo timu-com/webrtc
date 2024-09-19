@@ -242,9 +242,11 @@ func (i *IVFWriter) Close() error {
 	for time, offset := range i.timeOffsetMap {
 		secIdx := time / 1000
 		if secIdx < secondsInRecording {
-			if wholeSecondOffsetIndex[secIdx] != nil && wholeSecondOffsetIndex[secIdx].TimeOffset > time {
+			if wholeSecondOffsetIndex[secIdx] == nil {
 				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
-			} else {
+			}
+
+			if wholeSecondOffsetIndex[secIdx].TimeOffset > time {
 				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
 			}
 		}
