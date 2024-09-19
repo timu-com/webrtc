@@ -7,6 +7,7 @@ package ivfreader
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -140,11 +141,11 @@ func (i *IVFReader) parseFileHeader() (*IVFFileHeader, error) {
 	}
 
 	// ignoring the ivf header for now
-	// if header.signature != ivfFileHeaderSignature {
-	// 	return nil, errSignatureMismatch
-	// } else if header.version != uint16(0) {
-	// 	return nil, fmt.Errorf("%w: expected(0) got(%d)", errUnknownIVFVersion, header.version)
-	// }
+	if header.signature != ivfFileHeaderSignature {
+		return nil, errSignatureMismatch
+	} else if header.version != uint16(0) {
+		return nil, fmt.Errorf("%w: expected(0) got(%d)", errUnknownIVFVersion, header.version)
+	}
 
 	i.bytesReadSuccesfully += int64(bytesRead)
 	return header, nil
