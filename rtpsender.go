@@ -257,7 +257,7 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 		return nil
 	}
 
-	logger.Infow("binding track", "id", track.ID(), "ssrc", context.SSRC())
+	logger.Infow("binding track replacement", "id", track.ID(), "ssrc", context.SSRC())
 
 	// If we reach this point in the routine, there is only 1 track encoding
 	codec, err := track.Bind(&baseTrackLocalContext{
@@ -317,6 +317,9 @@ func (r *RTPSender) Send(parameters RTPSendParameters) error {
 		if err != nil {
 			return err
 		}
+
+		logger.Infow("binding track encoding", "id", trackEncoding.track.ID(), "ssrc", trackEncoding.ssrc)
+
 		trackEncoding.context.params.Codecs = []RTPCodecParameters{codec}
 
 		trackEncoding.streamInfo = *createStreamInfo(
