@@ -7,10 +7,10 @@
 package webrtc
 
 import (
+	"log"
 	"strings"
 	"sync"
 
-	"github.com/livekit/protocol/logger"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4/internal/util"
 	"github.com/pion/webrtc/v4/pkg/media"
@@ -147,7 +147,7 @@ func getPacketAllocationFromPool() *rtp.Packet {
 // all PeerConnections. The error message will contain the ID of the failed
 // PeerConnections so you can remove them
 func (s *TrackLocalStaticRTP) WriteRTP(p *rtp.Packet) error {
-	logger.Infow("getting packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+	log.Println("getting packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 
 	packet := getPacketAllocationFromPool()
 
@@ -155,7 +155,7 @@ func (s *TrackLocalStaticRTP) WriteRTP(p *rtp.Packet) error {
 
 	*packet = *p
 
-	logger.Infow("writing RTP packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+	log.Println("writing RTP packet allocation from pool", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 
 	return s.writeRTP(packet)
 }
@@ -167,9 +167,9 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 
 	writeErrs := []error{}
 
-	logger.Infow("writing to bindings", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+	log.Println("writing to bindings", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 	if len(s.bindings) == 0 {
-		logger.Infow("missing bindings for track, nothing will be written", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
+		log.Println("missing bindings for track, nothing will be written", "id", s.id, "codec", s.codec.MimeType, "streamID", s.streamID)
 	}
 	for _, b := range s.bindings {
 		p.Header.SSRC = uint32(b.ssrc)
@@ -177,7 +177,7 @@ func (s *TrackLocalStaticRTP) writeRTP(p *rtp.Packet) error {
 		if _, err := b.writeStream.WriteRTP(&p.Header, p.Payload); err != nil {
 			writeErrs = append(writeErrs, err)
 		} else {
-			logger.Infow("wrote packet to bindings track", "id", b.id, "ssrc", b.ssrc, "codec", s.codec.MimeType, "streamID", s.streamID)
+			log.Println("wrote packet to bindings track", "id", b.id, "ssrc", b.ssrc, "codec", s.codec.MimeType, "streamID", s.streamID)
 		}
 	}
 
