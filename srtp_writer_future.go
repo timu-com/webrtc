@@ -8,7 +8,6 @@ package webrtc
 
 import (
 	"io"
-	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -119,12 +118,10 @@ func (s *srtpWriterFuture) SetReadDeadline(t time.Time) error {
 
 func (s *srtpWriterFuture) WriteRTP(header *rtp.Header, payload []byte) (int, error) {
 	if value, ok := s.rtpWriteStream.Load().(*srtp.WriteStreamSRTP); ok {
-		log.Println("rtp write", "ssrc", s.ssrc)
 		return value.WriteRTP(header, payload)
 	}
 
 	if err := s.init(true); err != nil || s.rtpWriteStream.Load() == nil {
-		log.Println("skipping rtp write", "ssrc", s.ssrc, "err", err != nil)
 		return 0, err
 	}
 

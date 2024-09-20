@@ -9,7 +9,6 @@ package webrtc
 import (
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"time"
 
@@ -257,8 +256,6 @@ func (r *RTPSender) ReplaceTrack(track TrackLocal) error {
 		return nil
 	}
 
-	log.Println("binding track replacement", "id", track.ID(), "ssrc", context.SSRC())
-
 	// If we reach this point in the routine, there is only 1 track encoding
 	codec, err := track.Bind(&baseTrackLocalContext{
 		id:              context.ID(),
@@ -317,8 +314,6 @@ func (r *RTPSender) Send(parameters RTPSendParameters) error {
 		if err != nil {
 			return err
 		}
-
-		log.Println("binding track encoding", "id", trackEncoding.track.ID(), "ssrc", trackEncoding.ssrc)
 
 		trackEncoding.context.params.Codecs = []RTPCodecParameters{codec}
 
