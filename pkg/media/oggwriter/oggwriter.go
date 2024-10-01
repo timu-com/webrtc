@@ -49,7 +49,7 @@ type OggWriter struct {
 	lastPayloadSize         int
 
 	// used for seek indexing
-	offsetsfileName         string
+	// offsetsfileName         string
 	lastFrameTime           int64
 	timeOffsetMap           map[int64]int64
 	highestTimeOffset       int64
@@ -57,19 +57,21 @@ type OggWriter struct {
 	bytesAccumulatedCounter int64
 }
 
+var offsetsfileName string = ""
+
 // New builds a new OGG Opus writer
 func New(fileName string, sampleRate uint32, channelCount uint16) (*OggWriter, error) {
 	f, err := os.Create(fileName) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
+	offsetsfileName := strings.Split(fileName, ".")[0] + "-offsets.json"
+	log.Print("ogg file: ", offsetsfileName)
 	writer, err := NewWith(f, sampleRate, channelCount)
 	if err != nil {
 		return nil, f.Close()
 	}
 
-	writer.offsetsfileName = strings.Split(fileName, ".")[0] + "-offsets.json"
-	log.Print("ogg file: ", writer.offsetsfileName)
 	writer.fd = f
 	return writer, nil
 }
@@ -242,7 +244,7 @@ func (i *OggWriter) Close() error {
 	wholeSecondOffsetIndex := make([]*PlayOffset, secondsInRecording)
 	for time, offset := range i.timeOffsetMap {
 		secIdx := time / 1000
-		log.Print("ogg file time: ", time, " offset: ", offset)
+
 		if secIdx < secondsInRecording {
 			if wholeSecondOffsetIndex[secIdx] == nil {
 				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
@@ -253,24 +255,28 @@ func (i *OggWriter) Close() error {
 			}
 		}
 	}
-	jsonString, err := json.Marshal(wholeSecondOffsetIndex)
-	if err != nil {
-		log.Print("json marshal error: ", err)
-		return nil
-	}
-	f, err := os.Create(i.offsetsfileName) //nolint:gosec
-	if err != nil {
-		log.Print("ogg file create error: ", err)
-		log.Print(i.offsetsfileName)
-		return nil
-	}
 
-	_, err = f.Write(jsonString)
-	if err != nil {
-		log.Print("ogg file write error: ", err)
-		return nil
+	if offsetsfileName == "" {
+		jsonString, err := json.Marshal(wholeSecondOffsetIndex)
+		if err != nil {
+			log.Print("json marshal error: ", err)
+			return nil
+		}
+
+		f, err := os.Create(offsetsfileName) //nolint:gosec
+		if err != nil {
+			log.Print("ogg file create error: ", err)
+			log.Print(offsetsfileName)
+			return nil
+		}
+
+		_, err = f.Write(jsonString)
+		if err != nil {
+			log.Print("ogg file write error: ", err)
+			return nil
+		}
+		defer f.Close()
 	}
-	defer f.Close()
 
 	// Returns no error has it may be convenient to call
 	// Close() multiple times
