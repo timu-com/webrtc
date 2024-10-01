@@ -254,15 +254,18 @@ func (i *OggWriter) Close() error {
 	}
 	jsonString, err := json.Marshal(wholeSecondOffsetIndex)
 	if err != nil {
+		log.Print("json marshal error: ", err)
 		return nil
 	}
 	f, err := os.Create(i.offsetsfileName) //nolint:gosec
 	if err != nil {
+		log.Print("ogg file create error: ", err)
 		return nil
 	}
-	log.Print("ogg file jsonString: ", jsonString)
+
 	_, err = f.Write(jsonString)
 	if err != nil {
+		log.Print("ogg file write error: ", err)
 		return nil
 	}
 	defer f.Close()
