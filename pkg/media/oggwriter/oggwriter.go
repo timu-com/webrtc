@@ -6,9 +6,12 @@ package oggwriter
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/pion/randutil"
 	"github.com/pion/rtp"
@@ -42,6 +45,14 @@ type OggWriter struct {
 	previousGranulePosition uint64
 	previousTimestamp       uint32
 	lastPayloadSize         int
+
+	// used for seek indexing
+	offsetsfileName         string
+	lastFrameTime           int64
+	timeOffsetMap           map[int64]int64
+	highestTimeOffset       int64
+	timeElapsedMilliCounter int64
+	bytesAccumulatedCounter int64
 }
 
 // New builds a new OGG Opus writer
@@ -54,6 +65,8 @@ func New(fileName string, sampleRate uint32, channelCount uint16) (*OggWriter, e
 	if err != nil {
 		return nil, f.Close()
 	}
+
+	writer.offsetsfileName = strings.Split(fileName, ".")[0] + "-offsets.json"
 	writer.fd = f
 	return writer, nil
 }
@@ -210,6 +223,11 @@ func (i *OggWriter) WriteRTP(packet *rtp.Packet) error {
 	return i.writeToStream(data)
 }
 
+type PlayOffset struct {
+	TimeOffset  int64 `json:"time"`
+	BytesOffset int64 `json:"bytes"`
+}
+
 // Close stops the recording
 func (i *OggWriter) Close() error {
 	defer func() {
@@ -226,6 +244,34 @@ func (i *OggWriter) Close() error {
 		}
 		return nil
 	}
+
+	secondsInRecording := i.highestTimeOffset / 1000
+	wholeSecondOffsetIndex := make([]*PlayOffset, secondsInRecording)
+	for time, offset := range i.timeOffsetMap {
+		secIdx := time / 1000
+		if secIdx < secondsInRecording {
+			if wholeSecondOffsetIndex[secIdx] == nil {
+				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
+			}
+
+			if wholeSecondOffsetIndex[secIdx].TimeOffset > time {
+				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
+			}
+		}
+	}
+	jsonString, err := json.Marshal(wholeSecondOffsetIndex)
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(i.offsetsfileName) //nolint:gosec
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(jsonString)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
 	// Seek back one page, we need to update the header and generate new CRC
 	pageOffset, err := i.fd.Seek(-1*int64(i.lastPayloadSize+pageHeaderSize+1), 2)
@@ -253,6 +299,16 @@ func (i *OggWriter) Close() error {
 func (i *OggWriter) writeToStream(p []byte) error {
 	if i.stream == nil {
 		return errFileNotOpened
+	}
+
+	// time to offset map
+	currTime := time.Now().UnixMilli()
+	durationSinceLastFrame := uint64(currTime - i.lastFrameTime)
+	i.bytesAccumulatedCounter = i.bytesAccumulatedCounter + int64(len(p))
+	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastFrame)
+	i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
+	if i.timeElapsedMilliCounter > i.highestTimeOffset {
+		i.highestTimeOffset = i.timeElapsedMilliCounter
 	}
 
 	_, err := i.stream.Write(p)
