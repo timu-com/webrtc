@@ -69,6 +69,7 @@ func New(fileName string, sampleRate uint32, channelCount uint16) (*OggWriter, e
 	}
 
 	writer.offsetsfileName = strings.Split(fileName, ".")[0] + "-offsets.json"
+	log.Print("ogg file: ", writer.offsetsfileName)
 	writer.fd = f
 	return writer, nil
 }
