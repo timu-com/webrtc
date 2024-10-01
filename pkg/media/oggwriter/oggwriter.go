@@ -241,6 +241,7 @@ func (i *OggWriter) Close() error {
 	wholeSecondOffsetIndex := make([]*PlayOffset, secondsInRecording)
 	for time, offset := range i.timeOffsetMap {
 		secIdx := time / 1000
+		log.Print("ogg file time: ", time, " offset: ", offset)
 		if secIdx < secondsInRecording {
 			if wholeSecondOffsetIndex[secIdx] == nil {
 				wholeSecondOffsetIndex[secIdx] = &PlayOffset{TimeOffset: time, BytesOffset: offset}
