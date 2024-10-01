@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -268,6 +269,7 @@ func (i *OggWriter) Close() error {
 	if err != nil {
 		return err
 	}
+	log.Print("ogg file jsonString: ", jsonString)
 	_, err = f.Write(jsonString)
 	if err != nil {
 		return err
