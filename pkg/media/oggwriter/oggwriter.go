@@ -36,6 +36,7 @@ var (
 // OggWriter is used to take RTP packets and write them to an OGG on disk
 type OggWriter struct {
 	stream                  io.Writer
+	count                   uint64
 	fd                      *os.File
 	sampleRate              uint32
 	channelCount            uint16
@@ -301,9 +302,20 @@ func (i *OggWriter) writeToStream(p []byte) error {
 		return errFileNotOpened
 	}
 
-	// time to offset map
+	if i.count == 0 {
+		i.lastFrameTime = time.Now().UnixMilli()
+		i.bytesAccumulatedCounter = 0
+		i.timeElapsedMilliCounter = 0
+		i.timeOffsetMap = map[int64]int64{}
+		i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
+	}
 	currTime := time.Now().UnixMilli()
 	durationSinceLastFrame := uint64(currTime - i.lastFrameTime)
+
+	i.count++
+	i.lastFrameTime = currTime
+
+	// time to offset map
 	i.bytesAccumulatedCounter = i.bytesAccumulatedCounter + int64(len(p))
 	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastFrame)
 	i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
