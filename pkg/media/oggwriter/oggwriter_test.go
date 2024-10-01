@@ -82,9 +82,9 @@ func TestOggWriter_AddPacketAndClose(t *testing.T) {
 			closeErr:     nil,
 		},
 	}
-
+	var fileName = ""
 	// First test case has a 'nil' file descriptor
-	writer, err := NewWith(addPacketTestCase[0].buffer, 48000, 2)
+	writer, err := NewWith(fileName, addPacketTestCase[0].buffer, 48000, 2)
 	assert.Nil(err, "OggWriter should be created")
 	assert.NotNil(writer, "Writer shouldn't be nil")
 	err = writer.Close()
@@ -93,19 +93,19 @@ func TestOggWriter_AddPacketAndClose(t *testing.T) {
 	addPacketTestCase[0].writer = writer
 
 	// Second test writes tries to write an empty packet
-	writer, err = NewWith(addPacketTestCase[1].buffer, 48000, 2)
+	writer, err = NewWith(fileName, addPacketTestCase[1].buffer, 48000, 2)
 	assert.Nil(err, "OggWriter should be created")
 	assert.NotNil(writer, "Writer shouldn't be nil")
 	addPacketTestCase[1].writer = writer
 
 	// Third test writes tries to write a valid Opus packet
-	writer, err = NewWith(addPacketTestCase[2].buffer, 48000, 2)
+	writer, err = NewWith(fileName, addPacketTestCase[2].buffer, 48000, 2)
 	assert.Nil(err, "OggWriter should be created")
 	assert.NotNil(writer, "Writer shouldn't be nil")
 	addPacketTestCase[2].writer = writer
 
 	// Fourth test tries to write to a nil stream
-	writer, err = NewWith(addPacketTestCase[3].buffer, 4800, 2)
+	writer, err = NewWith(fileName, addPacketTestCase[3].buffer, 4800, 2)
 	assert.NotNil(err, "IVFWriter shouldn't be created")
 	assert.Nil(writer, "Writer should be nil")
 	addPacketTestCase[3].writer = writer
@@ -128,7 +128,7 @@ func TestOggWriter_AddPacketAndClose(t *testing.T) {
 func TestOggWriter_EmptyPayload(t *testing.T) {
 	buffer := &bytes.Buffer{}
 
-	writer, err := NewWith(buffer, 48000, 2)
+	writer, err := NewWith("", buffer, 48000, 2)
 	assert.NoError(t, err)
 
 	assert.NoError(t, writer.WriteRTP(&rtp.Packet{Payload: []byte{}}))
@@ -153,7 +153,7 @@ func TestOggWriter_LargePayload(t *testing.T) {
 	}
 	assert.NoError(t, validPacket.SetExtension(0, []byte{0xFF, 0xFF, 0xFF, 0xFF}))
 
-	writer, err := NewWith(&bytes.Buffer{}, 48000, 2)
+	writer, err := NewWith("", &bytes.Buffer{}, 48000, 2)
 	assert.NoError(t, err, "OggWriter should be created")
 	assert.NotNil(t, writer, "Writer shouldn't be nil")
 

@@ -49,7 +49,7 @@ type OggWriter struct {
 	lastPayloadSize         int
 
 	// used for seek indexing
-	// offsetsfileName         string
+	offsetsFileName         string
 	lastFrameTime           int64
 	timeOffsetMap           map[int64]int64
 	highestTimeOffset       int64
@@ -57,17 +57,14 @@ type OggWriter struct {
 	bytesAccumulatedCounter int64
 }
 
-var offsetsfileName string = ""
-
 // New builds a new OGG Opus writer
 func New(fileName string, sampleRate uint32, channelCount uint16) (*OggWriter, error) {
 	f, err := os.Create(fileName) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
-	offsetsfileName := strings.Split(fileName, ".")[0] + "-offsets.json"
-	log.Print("ogg file: ", offsetsfileName)
-	writer, err := NewWith(f, sampleRate, channelCount)
+
+	writer, err := NewWith(fileName, f, sampleRate, channelCount)
 	if err != nil {
 		return nil, f.Close()
 	}
@@ -77,7 +74,7 @@ func New(fileName string, sampleRate uint32, channelCount uint16) (*OggWriter, e
 }
 
 // NewWith initialize a new OGG Opus writer with an io.Writer output
-func NewWith(out io.Writer, sampleRate uint32, channelCount uint16) (*OggWriter, error) {
+func NewWith(fileName string, out io.Writer, sampleRate uint32, channelCount uint16) (*OggWriter, error) {
 	if out == nil {
 		return nil, errFileNotOpened
 	}
@@ -93,6 +90,7 @@ func NewWith(out io.Writer, sampleRate uint32, channelCount uint16) (*OggWriter,
 		// Only headers can have 0 values
 		previousTimestamp:       1,
 		previousGranulePosition: 1,
+		offsetsFileName:         strings.Split(fileName, ".")[0] + "-offsets.json",
 	}
 	if err := writer.writeHeaders(); err != nil {
 		return nil, err
@@ -256,17 +254,17 @@ func (i *OggWriter) Close() error {
 		}
 	}
 
-	if offsetsfileName == "" {
+	if i.offsetsFileName == "" {
 		jsonString, err := json.Marshal(wholeSecondOffsetIndex)
 		if err != nil {
 			log.Print("json marshal error: ", err)
 			return nil
 		}
 
-		f, err := os.Create(offsetsfileName) //nolint:gosec
+		f, err := os.Create(i.offsetsFileName) //nolint:gosec
 		if err != nil {
 			log.Print("ogg file create error: ", err)
-			log.Print(offsetsfileName)
+			log.Print(i.offsetsFileName)
 			return nil
 		}
 
