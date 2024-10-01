@@ -237,16 +237,6 @@ func (i *OggWriter) Close() error {
 		i.stream = nil
 	}()
 
-	// Returns no error has it may be convenient to call
-	// Close() multiple times
-	if i.fd == nil {
-		// Close stream if we are operating on a stream
-		if closer, ok := i.stream.(io.Closer); ok {
-			return closer.Close()
-		}
-		return nil
-	}
-
 	secondsInRecording := i.highestTimeOffset / 1000
 	wholeSecondOffsetIndex := make([]*PlayOffset, secondsInRecording)
 	for time, offset := range i.timeOffsetMap {
@@ -263,18 +253,28 @@ func (i *OggWriter) Close() error {
 	}
 	jsonString, err := json.Marshal(wholeSecondOffsetIndex)
 	if err != nil {
-		return err
+		return nil
 	}
 	f, err := os.Create(i.offsetsfileName) //nolint:gosec
 	if err != nil {
-		return err
+		return nil
 	}
 	log.Print("ogg file jsonString: ", jsonString)
 	_, err = f.Write(jsonString)
 	if err != nil {
-		return err
+		return nil
 	}
 	defer f.Close()
+
+	// Returns no error has it may be convenient to call
+	// Close() multiple times
+	if i.fd == nil {
+		// Close stream if we are operating on a stream
+		if closer, ok := i.stream.(io.Closer); ok {
+			return closer.Close()
+		}
+		return nil
+	}
 
 	// Seek back one page, we need to update the header and generate new CRC
 	pageOffset, err := i.fd.Seek(-1*int64(i.lastPayloadSize+pageHeaderSize+1), 2)
