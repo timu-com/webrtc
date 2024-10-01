@@ -260,6 +260,7 @@ func (i *OggWriter) Close() error {
 	f, err := os.Create(i.offsetsfileName) //nolint:gosec
 	if err != nil {
 		log.Print("ogg file create error: ", err)
+		log.Print(i.offsetsfileName)
 		return nil
 	}
 
