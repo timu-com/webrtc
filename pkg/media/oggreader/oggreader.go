@@ -102,9 +102,9 @@ func (o *OggReader) readHeaders() (*OggHeader, error) {
 		return nil, errBadIDPageSignature
 	}
 
-	if pageHeader.headerType != pageHeaderTypeBeginningOfStream {
-		return nil, errBadIDPageType
-	}
+	// if pageHeader.headerType != pageHeaderTypeBeginningOfStream {
+	// 	return nil, errBadIDPageType
+	// }
 
 	if len(payload) != idPagePayloadLength {
 		return nil, errBadIDPageLength
