@@ -83,12 +83,13 @@ func newWith(in io.Reader, doChecksum bool) (*OggReader, *OggHeader, error) {
 		doChecksum:    doChecksum,
 	}
 
-	header, err := reader.readHeaders()
-	if err != nil {
-		return nil, nil, err
-	}
+	// header, err := reader.readHeaders()
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
 
-	return reader, header, nil
+	// return reader, header, nil
+	return reader, nil, nil
 }
 
 func (o *OggReader) readHeaders() (*OggHeader, error) {
@@ -102,9 +103,9 @@ func (o *OggReader) readHeaders() (*OggHeader, error) {
 		return nil, errBadIDPageSignature
 	}
 
-	// if pageHeader.headerType != pageHeaderTypeBeginningOfStream {
-	// 	return nil, errBadIDPageType
-	// }
+	if pageHeader.headerType != pageHeaderTypeBeginningOfStream {
+		return nil, errBadIDPageType
+	}
 
 	if len(payload) != idPagePayloadLength {
 		return nil, errBadIDPageLength
