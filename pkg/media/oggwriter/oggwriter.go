@@ -255,7 +255,7 @@ func (i *OggWriter) Close() error {
 	}
 
 	log.Print("offsetsFileName: ", i.offsetsFileName)
-	if i.offsetsFileName == "" {
+	if i.offsetsFileName != "" {
 		jsonString, err := json.Marshal(wholeSecondOffsetIndex)
 		if err != nil {
 			log.Print("json marshal error: ", err)
