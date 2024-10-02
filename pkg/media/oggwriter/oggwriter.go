@@ -269,11 +269,12 @@ func (i *OggWriter) Close() error {
 			return nil
 		}
 
-		_, err = f.Write(jsonString)
+		byteCount, err := f.Write(jsonString)
 		if err != nil {
 			log.Print("ogg file write error: ", err)
 			return nil
 		}
+		log.Print("byteCount: ", byteCount)
 		defer f.Close()
 	}
 
