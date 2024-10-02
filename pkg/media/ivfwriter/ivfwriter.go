@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ type IVFWriter struct {
 	log           logging.LeveledLogger
 	lastFrameTime int64
 
-	offsetsfileName string
+	offsetsFileName string
 	// used for seek indexing
 	timeOffsetMap           map[int64]int64
 	highestTimeOffset       int64
@@ -67,7 +68,7 @@ func New(fileName string, opts ...Option) (*IVFWriter, error) {
 	if err != nil {
 		return nil, err
 	}
-	writer.offsetsfileName = strings.Split(fileName, ".")[0] + "-offsets.json"
+	writer.offsetsFileName = strings.Split(fileName, ".")[0] + "-offsets.json"
 	writer.log = logging.NewDefaultLoggerFactory().NewLogger("IVFWriterLogger")
 	writer.ioWriter = f
 	return writer, nil
@@ -255,7 +256,8 @@ func (i *IVFWriter) Close() error {
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(i.offsetsfileName) //nolint:gosec
+	log.Print("offsetsFileName: ", i.offsetsFileName)
+	f, err := os.Create(i.offsetsFileName) //nolint:gosec
 	if err != nil {
 		return err
 	}
