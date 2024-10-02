@@ -256,7 +256,7 @@ func (i *IVFWriter) Close() error {
 	if err != nil {
 		return err
 	}
-	log.Print("offsetsFileName: ", i.offsetsFileName)
+	log.Print("ivf offsetsFileName: ", i.offsetsFileName)
 	f, err := os.Create(i.offsetsFileName) //nolint:gosec
 	if err != nil {
 		return err
