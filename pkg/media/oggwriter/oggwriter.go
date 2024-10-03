@@ -50,7 +50,7 @@ type OggWriter struct {
 
 	// used for seek indexing
 	offsetsFileName         string
-	lastFrameTime           int64
+	lastPageTime            int64
 	timeOffsetMap           map[int64]int64
 	highestTimeOffset       int64
 	timeElapsedMilliCounter int64
@@ -317,21 +317,21 @@ func (i *OggWriter) writeToStream(p []byte) error {
 	}
 
 	if i.count == 0 {
-		i.lastFrameTime = time.Now().UnixMilli()
+		i.lastPageTime = time.Now().UnixMilli()
 		i.bytesAccumulatedCounter = 0
 		i.timeElapsedMilliCounter = 0
 		i.timeOffsetMap = map[int64]int64{}
 		i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
+		i.count++
 	}
-	currTime := time.Now().UnixMilli()
-	durationSinceLastFrame := uint64(currTime - i.lastFrameTime)
 
-	i.count++
-	i.lastFrameTime = currTime
+	currTime := time.Now().UnixMilli()
+	durationSinceLastPage := uint64(currTime - i.lastPageTime)
+	i.lastPageTime = currTime
 
 	// time to offset map
 	i.bytesAccumulatedCounter = i.bytesAccumulatedCounter + int64(len(p))
-	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastFrame)
+	i.timeElapsedMilliCounter = i.timeElapsedMilliCounter + int64(durationSinceLastPage)
 	i.timeOffsetMap[i.timeElapsedMilliCounter] = i.bytesAccumulatedCounter
 	if i.timeElapsedMilliCounter > i.highestTimeOffset {
 		i.highestTimeOffset = i.timeElapsedMilliCounter
